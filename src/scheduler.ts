@@ -1,12 +1,13 @@
-const pendingEffects = new Set();
+type EffectFn = () => void;
+
+const pendingEffects = new Set<EffectFn>();
 let isFlushing = false;
 
 /**
  * Schedules an effect to run in the next microtask.
  * Batches multiple state changes into a single flush.
- * @param {Function} effect
  */
-export function scheduleEffect(effect) {
+export function scheduleEffect(effect: EffectFn): void {
   pendingEffects.add(effect);
   if (!isFlushing) {
     isFlushing = true;
@@ -14,7 +15,7 @@ export function scheduleEffect(effect) {
   }
 }
 
-function flush() {
+function flush(): void {
   for (const effect of pendingEffects) {
     effect();
   }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createRef } from '../src/ref.js';
+import { createRef } from '../src/ref';
 
 describe('createRef', () => {
   it('should store initial value', () => {

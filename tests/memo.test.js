@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createState } from '../src/state.js';
-import { createMemo } from '../src/memo.js';
+import { createState } from '../src/state';
+import { createMemo } from '../src/memo';
 
 describe('createMemo', () => {
   it('should compute initial value', () => {

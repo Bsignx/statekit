@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createState } from '../src/state.js';
+import { createState } from '../src/state';
 
 describe('createState', () => {
   it('should return initial value', () => {

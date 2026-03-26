@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createComponent } from '../src/component.js';
-import { createState } from '../src/state.js';
+import { createComponent } from '../src/component';
+import { createState } from '../src/state';
 
 describe('createComponent', () => {
   it('should render into container', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createState } from '../src/state.js';
-import { createEffect } from '../src/effect.js';
+import { createState } from '../src/state';
+import { createEffect } from '../src/effect';
 
 describe('createEffect', () => {
   it('should run immediately', () => {

@@ -1,8 +1,8 @@
 # ⚡ StateKit
 
-Lightweight vanilla JS reactivity library inspired by React hooks with a built-in pub/sub event system.
+Lightweight TypeScript reactivity library inspired by React hooks with a built-in pub/sub event system.
 
-**Zero dependencies · < 5KB gzipped · ESM/CJS/UMD**
+**Zero dependencies · < 2KB minified · Full TypeScript support · ESM/CJS**
 
 ---
 
@@ -15,20 +15,17 @@ npm install statekit
 Or via CDN:
 
 ```html
-<script src="https://unpkg.com/statekit/dist/statekit.umd.js"></script>
-<script>
-  const { createState, createEffect } = StateKit;
-</script>
+<script src="https://unpkg.com/statekit/dist/index.js"></script>
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-```js
+```ts
 import { createState, createEffect, createEventBus } from 'statekit';
 
-// Create reactive state
+// Create reactive state (fully typed!)
 const count = createState(0);
 
 // React to changes
@@ -45,39 +42,43 @@ count.set(v => v + 1);  // logs: "Count: 2"
 
 ## 📖 API Reference
 
-### `createState(initialValue)`
+### `createState<T>(initialValue: T): State<T>`
 
 Creates a reactive state container. Notifies subscribers when value changes.
 
-```js
-const name = createState('Bruno');
+```ts
+import { createState, type State } from 'statekit';
 
-name.get();              // 'Bruno'
+const name: State<string> = createState('Bruno');
+
+name.get();              // 'Bruno' (typed as string)
 name.set('John');        // updates value, notifies subscribers
 name.set(v => v + '!'); // updater function
 
 // Manual subscription
-const unsubscribe = name.subscribe((value) => {
+const unsubscribe = name.subscribe(() => {
   console.log('Name changed!');
 });
 unsubscribe(); // stop listening
 ```
 
-**Returns:** `{ get, set, subscribe }`
+**`State<T>` interface:**
 
-| Method | Description |
-|--------|-------------|
-| `get()` | Returns the current value. Auto-tracks if called inside an effect. |
-| `set(value)` | Sets a new value. Accepts a value or an updater function `(prev) => next`. Skips if `Object.is(old, new)`. |
-| `subscribe(fn)` | Manually subscribe to changes. Returns an unsubscribe function. |
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `get` | `() => T` | Returns the current value. Auto-tracks if called inside an effect. |
+| `set` | `(value: T \| (prev: T) => T) => void` | Sets a new value. Skips if `Object.is(old, new)`. |
+| `subscribe` | `(fn: () => void) => () => void` | Manually subscribe. Returns unsubscribe function. |
 
 ---
 
-### `createEffect(fn, deps?)`
+### `createEffect(fn, deps?): () => void`
 
 Creates a reactive side-effect. Re-runs when dependencies change. Supports cleanup functions (like React's `useEffect`).
 
-```js
+```ts
+import { createState, createEffect } from 'statekit';
+
 const count = createState(0);
 
 const dispose = createEffect(() => {
@@ -91,29 +92,30 @@ const dispose = createEffect(() => {
 }, [count]);
 
 count.set(1); // triggers re-run
-
-dispose(); // stop the effect, run final cleanup
+dispose();    // stop the effect, run final cleanup
 ```
 
 **Parameters:**
 | Param | Type | Description |
 |-------|------|-------------|
 | `fn` | `() => (() => void) \| void` | Effect function. May return a cleanup function. |
-| `deps` | `Array` | Optional array of reactive states to watch. |
+| `deps` | `Dependency[]` | Optional array of reactive states to watch. |
 
 **Returns:** `() => void` — Dispose function.
 
 ---
 
-### `createMemo(fn, deps)`
+### `createMemo<T>(fn, deps): Memo<T>`
 
 Creates a memoized computed value. Only recalculates when dependencies change.
 
-```js
+```ts
+import { createState, createMemo, type Memo } from 'statekit';
+
 const price = createState(100);
 const tax = createState(0.1);
 
-const total = createMemo(() => {
+const total: Memo<number> = createMemo(() => {
   return price.get() * (1 + tax.get());
 }, [price, tax]);
 
@@ -123,74 +125,87 @@ price.set(200);
 total.get(); // 220
 ```
 
-**Returns:** `{ get }` — Object with a `get()` method.
+**`Memo<T>` interface:**
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `get` | `() => T` | Returns the current computed value. |
 
 ---
 
-### `createRef(initialValue)`
+### `createRef<T>(initialValue: T): Ref<T>`
 
 Creates a mutable reference that does **NOT** trigger reactivity. Similar to React's `useRef`.
 
-```js
-const timerRef = createRef(null);
+```ts
+import { createRef, type Ref } from 'statekit';
 
-timerRef.current = setInterval(() => {
-  console.log('tick');
-}, 1000);
+const timerRef: Ref<number> = createRef(0);
+timerRef.current = setInterval(() => console.log('tick'), 1000);
 
-// Later:
-clearInterval(timerRef.current);
+// With DOM elements
+const inputRef = createRef<HTMLInputElement | null>(null);
+inputRef.current = document.querySelector('input');
 ```
 
-**Returns:** `{ current: T }`
+**`Ref<T>` interface:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `current` | `T` | The mutable value. Changes don't trigger reactivity. |
 
 ---
 
-### `createEventBus()`
+### `createEventBus(): EventBus`
 
-Creates a pub/sub event bus for decoupled communication.
+Creates a pub/sub event bus for decoupled communication. Supports generic types for type-safe events.
 
-```js
-const bus = createEventBus();
+```ts
+import { createEventBus, type EventBus } from 'statekit';
 
-// Subscribe
-const unsubscribe = bus.on('user:login', (data) => {
-  console.log('User logged in:', data.name);
+const bus: EventBus = createEventBus();
+
+// Type-safe events!
+interface User {
+  name: string;
+  email: string;
+}
+
+bus.on<User>('user:login', (data) => {
+  console.log(data.name);  // ✅ typed as string
+  console.log(data.email); // ✅ typed as string
 });
 
-// Emit
-bus.emit('user:login', { name: 'Bruno' });
+bus.emit<User>('user:login', { name: 'Bruno', email: 'bruno@test.com' });
 
 // One-time listener
-bus.once('app:ready', () => {
-  console.log('App is ready!');
-});
+bus.once('app:ready', () => console.log('Ready!'));
 
 // Unsubscribe
-unsubscribe();
-// or: bus.off('user:login', handler);
+const unsub = bus.on('event', handler);
+unsub();
 
 // Clear all
 bus.clear();
 ```
 
-**Returns:**
+**`EventBus` interface:**
 
-| Method | Description |
-|--------|-------------|
-| `on(event, handler)` | Subscribe. Returns unsubscribe function. |
-| `off(event, handler)` | Unsubscribe a specific handler. |
-| `emit(event, data?)` | Emit event with optional data. |
-| `once(event, handler)` | Subscribe, auto-remove after first call. |
-| `clear()` | Remove all listeners for all events. |
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `on` | `<T>(event, handler) => () => void` | Subscribe. Returns unsubscribe function. |
+| `off` | `<T>(event, handler) => void` | Unsubscribe a specific handler. |
+| `emit` | `<T>(event, data?) => void` | Emit event with optional data. |
+| `once` | `<T>(event, handler) => () => void` | Subscribe, auto-remove after first call. |
+| `clear` | `() => void` | Remove all listeners for all events. |
 
 ---
 
-### `createComponent(setup, container)`
+### `createComponent(setup, container): () => void`
 
 Mounts a reactive component into a DOM element. Re-renders automatically when reactive state changes.
 
-```js
+```ts
 import { createComponent, createState } from 'statekit';
 
 createComponent(({ html, on }) => {
@@ -212,18 +227,18 @@ createComponent(({ html, on }) => {
       <button data-action="increment">+</button>
     </div>
   `;
-}, document.getElementById('app'));
+}, document.getElementById('app')!);
 ```
 
 **Parameters:**
 | Param | Type | Description |
 |-------|------|-------------|
-| `setup` | `({ html, on }) => () => string` | Setup function. Receives `html` (tagged template) and `on` (event delegation). Must return a render function. |
+| `setup` | `(helpers: ComponentHelpers) => () => string` | Setup function. Must return a render function. |
 | `container` | `HTMLElement` | DOM element to mount into. |
 
 **Returns:** `() => void` — Unmount function.
 
-**Helpers:**
+**`ComponentHelpers`:**
 - **`html`** — Tagged template literal with auto XSS escaping.
 - **`on(eventName, selector, handler)`** — Delegated event listener that survives re-renders.
 
@@ -233,7 +248,7 @@ createComponent(({ html, on }) => {
 
 StateKit automatically batches synchronous state changes using `queueMicrotask`. Multiple `set()` calls in the same synchronous block result in a single re-render.
 
-```js
+```ts
 const a = createState(0);
 const b = createState(0);
 
@@ -248,12 +263,34 @@ b.set(2);
 
 ---
 
+## 🔧 TypeScript Support
+
+StateKit is written in TypeScript and ships with full type declarations. All APIs are fully typed with generics:
+
+```ts
+import type { State, Memo, Ref, EventBus, ComponentHelpers } from 'statekit';
+
+// State type is inferred
+const count = createState(0);        // State<number>
+const name = createState('Bruno');   // State<string>
+const user = createState<User | null>(null); // State<User | null>
+
+// Memo type is inferred
+const doubled = createMemo(() => count.get() * 2, [count]); // Memo<number>
+
+// Ref type is inferred or explicit
+const ref = createRef<HTMLDivElement | null>(null); // Ref<HTMLDivElement | null>
+```
+
+---
+
 ## 🧪 Testing
 
 ```bash
 npm test              # Run all tests
 npm run test:watch    # Watch mode
 npm run test:coverage # With coverage report
+npm run typecheck     # TypeScript type checking
 ```
 
 ---
@@ -265,9 +302,9 @@ npm run build
 ```
 
 Outputs:
-- `dist/statekit.esm.js` — ES Modules
-- `dist/statekit.cjs.js` — CommonJS
-- `dist/statekit.umd.js` — UMD (browser global `StateKit`)
+- `dist/index.js` — ES Modules (minified)
+- `dist/index.cjs` — CommonJS (minified)
+- `dist/*.d.ts` — TypeScript declarations
 
 ---
 
@@ -276,14 +313,14 @@ Outputs:
 ```
 statekit/
 ├── src/
-│   ├── index.js        # Barrel exports
-│   ├── state.js        # createState
-│   ├── effect.js       # createEffect
-│   ├── memo.js         # createMemo
-│   ├── ref.js          # createRef
-│   ├── event-bus.js    # createEventBus
-│   ├── component.js    # createComponent
-│   └── scheduler.js    # Batch update scheduler
+│   ├── index.ts        # Barrel exports + type re-exports
+│   ├── state.ts        # createState
+│   ├── effect.ts       # createEffect
+│   ├── memo.ts         # createMemo
+│   ├── ref.ts          # createRef
+│   ├── event-bus.ts    # createEventBus
+│   ├── component.ts    # createComponent
+│   └── scheduler.ts    # Batch update scheduler
 ├── tests/
 │   ├── state.test.js
 │   ├── effect.test.js
@@ -292,9 +329,10 @@ statekit/
 │   ├── event-bus.test.js
 │   └── component.test.js
 ├── demo/               # Pokémon Explorer demo app
-├── dist/               # Built output
+├── dist/               # Built output (JS + .d.ts)
 ├── package.json
-├── rollup.config.js
+├── tsconfig.json
+├── tsup.config.ts
 ├── vitest.config.js
 └── README.md
 ```
