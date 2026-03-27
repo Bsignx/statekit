@@ -44,6 +44,10 @@
     "signals",
     "lightweight"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bsignx/statekit"
+  },
   "author": "Bruno Mariano",
   "license": "MIT",
   "devDependencies": {
