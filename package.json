@@ -1,5 +1,5 @@
 {
-  "name": "statekit",
+  "name": "@bsignx/statekit",
   "version": "0.1.0",
   "description": "Lightweight TypeScript reactivity library inspired by React hooks with pub/sub events",
   "type": "module",
